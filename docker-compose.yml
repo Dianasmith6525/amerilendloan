@@ -1,0 +1,27 @@
+version: "3.8"
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on: []
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# Optional nginx service for TLS termination (example)
+# nginx:
+#   image: nginx:stable-alpine
+#   ports:
+#     - "80:80"
+#     - "443:443"
+#   volumes:
+#     - ./nginx/conf.d:/etc/nginx/conf.d:ro
+#     - ./certs:/etc/nginx/certs:ro
+#   depends_on:
+#     - web

@@ -1,0 +1,1 @@
+ALTER TABLE `systemSettings` ADD `category` varchar(50);

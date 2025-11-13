@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS passwordResetTokens (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  userId INT NOT NULL,
+  token VARCHAR(255) NOT NULL UNIQUE,
+  expiresAt TIMESTAMP NOT NULL,
+  used INT DEFAULT 0 NOT NULL COMMENT '0 = not used, 1 = used',
+  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  INDEX idx_userId (userId),
+  INDEX idx_token (token),
+  FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
