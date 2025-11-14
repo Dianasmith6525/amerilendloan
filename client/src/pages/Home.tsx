@@ -24,8 +24,18 @@ import {
   XCircle,
   Calendar,
   DollarSign,
+  Star,
+  ArrowRight,
+  Sparkles,
+  Zap,
+  Award,
+  Users,
+  Target,
+  Heart,
+  Check,
+  Lock,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl, APP_LOGO } from "@/const";
@@ -40,6 +50,47 @@ export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
   const { isAuthenticated } = useAuth();
+
+  // Animated counter effect
+  const [counters, setCounters] = useState({
+    loansProcessed: 0,
+    happyCustomers: 0,
+    avgApprovalTime: 0,
+    customerSatisfaction: 0,
+  });
+
+  useEffect(() => {
+    const targetValues = {
+      loansProcessed: 12547,
+      happyCustomers: 9842,
+      avgApprovalTime: 24,
+      customerSatisfaction: 98,
+    };
+
+    const duration = 2000; // 2 seconds
+    const steps = 60;
+    const increment = duration / steps;
+
+    let currentStep = 0;
+    const timer = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+
+      setCounters({
+        loansProcessed: Math.floor(targetValues.loansProcessed * progress),
+        happyCustomers: Math.floor(targetValues.happyCustomers * progress),
+        avgApprovalTime: Math.floor(targetValues.avgApprovalTime * progress),
+        customerSatisfaction: Math.floor(targetValues.customerSatisfaction * progress),
+      });
+
+      if (currentStep >= steps) {
+        clearInterval(timer);
+        setCounters(targetValues);
+      }
+    }, increment);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Track application query
   const trackQuery = trpc.loans.trackByReference.useQuery(
@@ -322,68 +373,218 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="bg-white py-12 md:py-20">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            {/* Hero Image */}
-            <div className="order-2 md:order-1">
-              <img
-                src="/hero-background.jpg"
-                alt="Happy couple reviewing loan application"
-                className="rounded-lg shadow-lg w-full h-auto object-cover"
-              />
-            </div>
+      {/* Hero Section - Enhanced with modern design */}
+      <section className="relative bg-gradient-to-br from-[#0033A0] via-[#002080] to-[#001060] py-16 md:py-24 overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-full h-full" style={{backgroundImage: `url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')`}}></div>
+        </div>
 
+        {/* Floating Elements */}
+        <div className="absolute top-20 left-10 animate-bounce">
+          <Sparkles className="w-8 h-8 text-yellow-400 opacity-60" />
+        </div>
+        <div className="absolute top-40 right-20 animate-pulse">
+          <Zap className="w-6 h-6 text-blue-300 opacity-40" />
+        </div>
+        <div className="absolute bottom-20 left-20 animate-bounce" style={{ animationDelay: '1s' }}>
+          <Heart className="w-7 h-7 text-pink-400 opacity-50" />
+        </div>
+
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Hero Content */}
-            <div className="order-1 md:order-2">
-              <h1 className="text-4xl md:text-5xl font-bold text-[#0033A0] mb-6">
-                Online Loans
+            <div className="text-white">
+              <div className="flex items-center gap-2 mb-4">
+                <Award className="w-6 h-6 text-yellow-400" />
+                <span className="text-yellow-400 font-semibold text-sm uppercase tracking-wide">
+                  #1 Online Lending Platform
+                </span>
+              </div>
+
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+                Fast, Secure
                 <br />
-                Designed for You
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
+                  Personal Loans
+                </span>
               </h1>
 
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">
-                    Same-day funding available.<sup>1</sup>
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">
-                    Applying does NOT affect your FICO® credit score.<sup>2</sup>
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-gray-700">No hidden fees.</span>
-                </li>
-              </ul>
+              <p className="text-xl text-blue-100 mb-8 leading-relaxed">
+                Get approved in minutes, funded the same day. No credit score impact.
+                Join thousands of satisfied customers who trust AmeriLend.
+              </p>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              {/* Key Benefits */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                  <Clock className="w-8 h-8 text-green-400 flex-shrink-0" />
+                  <div>
+                    <div className="font-bold text-white">Same-Day</div>
+                    <div className="text-blue-200 text-sm">Funding</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                  <Shield className="w-8 h-8 text-blue-400 flex-shrink-0" />
+                  <div>
+                    <div className="font-bold text-white">Bank-Level</div>
+                    <div className="text-blue-200 text-sm">Security</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                  <TrendingUp className="w-8 h-8 text-purple-400 flex-shrink-0" />
+                  <div>
+                    <div className="font-bold text-white">Low</div>
+                    <div className="text-blue-200 text-sm">APR Rates</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <Link href="/apply">
-                  <Button className="bg-[#FFA500] hover:bg-[#FF8C00] text-white font-semibold px-8 py-6 text-lg w-full sm:w-auto">
-                    Apply Now
+                  <Button className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold px-8 py-4 text-lg rounded-full shadow-2xl transform hover:scale-105 transition-all duration-200 w-full sm:w-auto">
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Apply Now - Get Funded Today
                   </Button>
                 </Link>
 
                 <Link href="/prequalify">
-                  <Button variant="outline" className="border-[#0033A0] text-[#0033A0] hover:bg-[#0033A0] hover:text-white px-8 py-6 text-lg w-full sm:w-auto">
-                    Check If You Qualify
+                  <Button variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-[#0033A0] px-8 py-4 text-lg rounded-full font-semibold w-full sm:w-auto transition-all duration-200">
+                    <Target className="w-5 h-5 mr-2" />
+                    Check Pre-Qualification
                   </Button>
                 </Link>
               </div>
 
-              <p className="text-sm text-gray-500 mt-4">
-                Already applied?{" "}
-                <Link href="/track">
-                  <a className="text-[#0033A0] underline font-semibold hover:text-[#002080]">
-                    Track your application
-                  </a>
-                </Link>
-              </p>
+              <div className="flex items-center gap-4 text-sm text-blue-200">
+                <div className="flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                  <span>No Credit Impact</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                  <span>Transparent Fees</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                  <span>24/7 Support</span>
+                </div>
+              </div>
+
+              {/* Trust Seals Section */}
+              <div className="mt-8 pt-6 border-t border-white/20">
+                <div className="flex items-center justify-center gap-6 text-white/80">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-5 h-5 text-green-400" />
+                    <span className="text-sm font-medium">SSL Secured</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-blue-400" />
+                    <span className="text-sm font-medium">Bank-Level Security</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-5 h-5 text-purple-400" />
+                    <span className="text-sm font-medium">BBB Accredited</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Hero Visual */}
+            <div className="relative">
+              {/* Main Card */}
+              <div className="bg-white rounded-2xl shadow-2xl p-8 transform rotate-2 hover:rotate-0 transition-transform duration-300">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-[#0033A0] to-[#002080] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <DollarSign className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-[#0033A0] mb-2">$5,000 Loan Approved</h3>
+                  <p className="text-gray-600">in just 24 minutes!</p>
+                </div>
+
+                {/* Progress Steps */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="text-gray-700 font-medium">Application Submitted</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="text-gray-700 font-medium">Credit Check Complete</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="text-gray-700 font-medium">Loan Approved</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center animate-pulse">
+                      <Clock className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="text-[#0033A0] font-bold">Funds Transferring...</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating Success Badge */}
+              <div className="absolute -top-4 -right-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-full font-bold shadow-lg animate-bounce">
+                ✅ Approved!
+              </div>
+
+              {/* Floating Stats */}
+              <div className="absolute -bottom-6 -left-6 bg-white rounded-lg shadow-xl p-4 transform -rotate-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-[#0033A0]">{counters.customerSatisfaction}%</div>
+                  <div className="text-sm text-gray-600">Satisfaction</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section - Animated Counters */}
+      <section className="bg-white py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0033A0] mb-4">
+              Trusted by Thousands
+            </h2>
+            <p className="text-gray-600 text-lg">
+              Join our growing community of satisfied customers
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-[#0033A0] mb-2">
+                {counters.loansProcessed.toLocaleString()}+
+              </div>
+              <div className="text-gray-600 font-medium">Loans Processed</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-[#0033A0] mb-2">
+                {counters.happyCustomers.toLocaleString()}+
+              </div>
+              <div className="text-gray-600 font-medium">Happy Customers</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-[#0033A0] mb-2">
+                {counters.avgApprovalTime}h
+              </div>
+              <div className="text-gray-600 font-medium">Avg Approval Time</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-[#0033A0] mb-2">
+                {counters.customerSatisfaction}%
+              </div>
+              <div className="text-gray-600 font-medium">Satisfaction Rate</div>
             </div>
           </div>
         </div>
@@ -766,12 +967,7 @@ export default function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                   </div>
-                  <span>
-                    Reside in one of the{" "}
-                    <a href="#states" className="text-[#0033A0] underline">
-                      states we service
-                    </a>
-                  </span>
+                  <span>Be a U.S. resident in any state</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -902,7 +1098,7 @@ export default function Home() {
               {
                 question: "What are the eligibility requirements to apply for a loan?",
                 answer:
-                  "To apply, you must be at least 18 years old, reside in one of our serviced states, have a regular source of income, maintain a checking or savings account, and receive paychecks through direct deposit.",
+                  "To apply, you must be at least 18 years old, be a U.S. resident in any state, have a regular source of income, maintain a checking or savings account, and receive paychecks through direct deposit.",
                 color: "border-l-orange-500",
               },
               {
@@ -971,12 +1167,8 @@ export default function Home() {
             {/* Article 1 */}
             <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
-                <div className="w-32 h-32 rounded-full bg-gray-200 mx-auto mb-4 overflow-hidden">
-                  <img
-                    src="/hero-background.jpg"
-                    alt="Financial planning"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-green-100 to-green-200 mx-auto mb-4 flex items-center justify-center">
+                  <TrendingUp className="w-16 h-16 text-green-600" />
                 </div>
                 <h3 className="text-lg font-bold text-[#0033A0] mb-2">
                   The AmeriLend Money Guide: A Financial Management Tool
@@ -990,12 +1182,8 @@ export default function Home() {
             {/* Article 2 */}
             <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
-                <div className="w-32 h-32 rounded-full bg-gray-200 mx-auto mb-4 overflow-hidden">
-                  <img
-                    src="/hero-background.jpg"
-                    alt="Budgeting tips"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 mx-auto mb-4 flex items-center justify-center">
+                  <DollarSign className="w-16 h-16 text-orange-600" />
                 </div>
                 <h3 className="text-lg font-bold text-[#0033A0] mb-2">
                   How to Survive and Budget When Money Is Tight
@@ -1009,12 +1197,8 @@ export default function Home() {
             {/* Article 3 */}
             <Card className="border-l-4 border-l-red-500 hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
-                <div className="w-32 h-32 rounded-full bg-gray-200 mx-auto mb-4 overflow-hidden">
-                  <img
-                    src="/hero-background.jpg"
-                    alt="Smart spending"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-red-100 to-red-200 mx-auto mb-4 flex items-center justify-center">
+                  <Target className="w-16 h-16 text-red-600" />
                 </div>
                 <h3 className="text-lg font-bold text-[#0033A0] mb-2">
                   'Should I Buy This?' A Financial Flowchart for Smart Spending
