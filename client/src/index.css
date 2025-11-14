@@ -43,7 +43,7 @@
 }
 
 :root {
-  --primary: 221 100% 31%; /* Deep Blue #0033A0 matching OppLoans */
+  --primary: 221 83% 53%; /* Modern Blue #1e40af */
   --primary-foreground: 0 0% 100%;
   --sidebar-primary: var(--color-blue-700);
   --sidebar-primary-foreground: var(--color-blue-50);
@@ -52,7 +52,7 @@
   --chart-3: var(--color-blue-600);
   --chart-4: var(--color-blue-700);
   --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
+  --radius: 0.75rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.235 0.015 65);
   --card: oklch(1 0 0);
