@@ -18,6 +18,7 @@ export default function Signup() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phoneNumber: "",
     password: "",
     confirmPassword: "",
     referralCode: refCode.toUpperCase(),
@@ -83,6 +84,7 @@ export default function Signup() {
     signupMutation.mutate({
       email: formData.email,
       password: formData.password,
+      phoneNumber: formData.phoneNumber || undefined,
       referralCode: formData.referralCode || undefined,
     });
   };
@@ -174,6 +176,21 @@ export default function Signup() {
                   required
                   className="h-12"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number (Optional)</Label>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  placeholder="(555) 123-4567"
+                  value={formData.phoneNumber}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  className="h-12"
+                />
+                <p className="text-xs text-gray-500">
+                  Optional: Use this for SMS verification and support contact
+                </p>
               </div>
 
               <div className="space-y-2">

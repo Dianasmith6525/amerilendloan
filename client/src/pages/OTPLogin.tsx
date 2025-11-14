@@ -11,9 +11,10 @@ import { toast } from "sonner";
 
 export default function OTPLogin() {
   const [, setLocation] = useLocation();
-  const [loginMethod, setLoginMethod] = useState<"password" | "otp">("password");
-  const [step, setStep] = useState<"email" | "code">("email");
+  const [loginMethod, setLoginMethod] = useState<"password" | "email-otp" | "phone-otp">("password");
+  const [step, setStep] = useState<"input" | "code">("input");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [referralCode, setReferralCode] = useState("");
@@ -70,14 +71,25 @@ export default function OTPLogin() {
 
   const handleRequestCode = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      toast.error("Please enter your email");
-      return;
+    if (loginMethod === "email-otp") {
+      if (!email) {
+        toast.error("Please enter your email");
+        return;
+      }
+      requestCodeMutation.mutate({
+        email,
+        purpose: "login",
+      });
+    } else if (loginMethod === "phone-otp") {
+      if (!phone) {
+        toast.error("Please enter your phone number");
+        return;
+      }
+      requestCodeMutation.mutate({
+        email: phone, // Phone OTP uses email field in backend
+        purpose: "login",
+      });
     }
-    requestCodeMutation.mutate({
-      email,
-      purpose: "login",
-    });
   };
 
   const handleVerifyCode = (e: React.FormEvent) => {
@@ -86,8 +98,9 @@ export default function OTPLogin() {
       toast.error("Please enter the 6-digit code");
       return;
     }
+    const verifyEmail = loginMethod === "email-otp" ? email : phone;
     verifyCodeMutation.mutate({
-      email,
+      email: verifyEmail,
       code,
       purpose: "login",
       referralCode: referralCode.trim() || undefined,
@@ -137,14 +150,14 @@ export default function OTPLogin() {
           <CardHeader>
             <CardTitle>
               {loginMethod === "password" ? "Sign In" : 
-               step === "email" ? "Enter Your Email" : "Enter Verification Code"}
+               step === "input" ? (loginMethod === "email-otp" ? "Enter Your Email" : "Enter Your Phone") : "Enter Verification Code"}
             </CardTitle>
             <CardDescription>
               {loginMethod === "password" 
                 ? "Enter your email and password to continue"
-                : step === "email"
+                : step === "input"
                 ? "We'll send you a 6-digit code to verify your identity"
-                : `We sent a code to ${email}`}
+                : `We sent a code to ${loginMethod === "email-otp" ? email : phone}`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -204,33 +217,58 @@ export default function OTPLogin() {
                   )}
                 </Button>
 
-                <div className="text-center">
+                <div className="text-center space-y-2">
                   <button
                     type="button"
-                    onClick={() => setLoginMethod("otp")}
-                    className="text-sm text-primary hover:underline"
+                    onClick={() => { setLoginMethod("email-otp"); setStep("input"); }}
+                    className="text-sm text-primary hover:underline block w-full"
                   >
-                    Use OTP instead
+                    Use Email OTP instead
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setLoginMethod("phone-otp"); setStep("input"); }}
+                    className="text-sm text-primary hover:underline block w-full"
+                  >
+                    Use Phone OTP instead
                   </button>
                 </div>
               </form>
-            ) : step === "email" ? (
+            ) : step === "input" ? (
               <form onSubmit={handleRequestCode} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
+                {loginMethod === "email-otp" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="(555) 123-4567"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <Button
                   type="submit"
@@ -244,11 +282,28 @@ export default function OTPLogin() {
                     </>
                   ) : (
                     <>
-                      <Mail className="mr-2 h-4 w-4" />
-                      Send Verification Code
+                      {loginMethod === "email-otp" ? (
+                        <>
+                          <Mail className="mr-2 h-4 w-4" />
+                          Send Email Code
+                        </>
+                      ) : (
+                        <>
+                          <Phone className="mr-2 h-4 w-4" />
+                          Send SMS Code
+                        </>
+                      )}
                     </>
                   )}
                 </Button>
+                
+                <button
+                  type="button"
+                  onClick={() => setLoginMethod("password")}
+                  className="text-sm text-primary hover:underline w-full text-center"
+                >
+                  Back to Password Login
+                </button>
               </form>
             ) : (
               <form onSubmit={handleVerifyCode} className="space-y-4">
