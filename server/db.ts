@@ -55,7 +55,7 @@ export async function getDb() {
       const pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: {
-          rejectUnauthorized: true
+          rejectUnauthorized: false  // Allow Supabase's SSL certificate
         }
       });
       _db = drizzle(pool, { 
@@ -125,7 +125,10 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    // PostgreSQL upsert using ON CONFLICT
+    const conflictTarget = users.openId;
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: conflictTarget,
       set: updateSet,
     });
   } catch (error) {
@@ -188,7 +191,7 @@ export async function createUser(userData: {
     throw new Error("Database not available");
   }
 
-  const [result] = await db.insert(users).values({
+  const result = await db.insert(users).values({
     email: userData.email,
     name: userData.name,
     phoneNumber: userData.phoneNumber || null,
@@ -200,9 +203,9 @@ export async function createUser(userData: {
     zipCode: userData.zipCode || null,
     dateOfBirth: userData.dateOfBirth || null,
     ssn: userData.ssn || null,
-  }).$returningId();
+  }).returning({ id: users.id });
 
-  return result.id;
+  return result[0].id;
 }
 
 // ============================================
@@ -558,15 +561,15 @@ export async function saveDraftApplication(data: {
     return existing[0].id;
   } else {
     // Create new draft
-    const [result] = await db.insert(draftApplications).values({
+    const result = await db.insert(draftApplications).values({
       email: data.email,
       userId: data.userId || null,
       draftData: data.draftData,
       currentStep: data.currentStep,
       expiresAt,
-    }).$returningId();
+    }).returning({ id: draftApplications.id });
     
-    return result.id;
+    return result[0].id;
   }
 }
 
@@ -750,9 +753,9 @@ export async function createLiveChatConversation(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const [conversation] = await db.insert(liveChatConversations).values(data).$returningId();
-  const [result] = await db.select().from(liveChatConversations).where(eq(liveChatConversations.id, conversation.id));
-  return result;
+  const conversation = await db.insert(liveChatConversations).values(data).returning({ id: liveChatConversations.id });
+  const result = await db.select().from(liveChatConversations).where(eq(liveChatConversations.id, conversation[0].id));
+  return result[0];
 }
 
 /**
@@ -867,15 +870,15 @@ export async function createLiveChatMessage(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const [message] = await db.insert(liveChatMessages).values(data).$returningId();
-  const [result] = await db.select().from(liveChatMessages).where(eq(liveChatMessages.id, message.id));
+  const message = await db.insert(liveChatMessages).values(data).returning({ id: liveChatMessages.id });
+  const result = await db.select().from(liveChatMessages).where(eq(liveChatMessages.id, message[0].id));
   
   // Update conversation's updatedAt timestamp
   await db.update(liveChatConversations)
     .set({ updatedAt: new Date() })
     .where(eq(liveChatConversations.id, data.conversationId));
   
-  return result;
+  return result[0];
 }
 
 /**
@@ -989,20 +992,20 @@ export async function upsertSystemSetting(
     return updated;
   } else {
     // Insert new setting
-    const [inserted] = await db.insert(systemSettings).values({
+    const inserted = await db.insert(systemSettings).values({
       key: settingKey,
       value: settingValue,
       type: settingType,
       description: description || null,
       isPublic: 0, // Default to private
       updatedBy
-    }).$returningId();
+    }).returning({ id: systemSettings.id });
 
-    const [result] = await db.select()
+    const result = await db.select()
       .from(systemSettings)
-      .where(eq(systemSettings.id, inserted.id));
+      .where(eq(systemSettings.id, inserted[0].id));
 
-    return result;
+    return result[0];
   }
 }
 
@@ -1069,13 +1072,13 @@ export async function createAuditLog(data: InsertAuditLog) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const [result] = await db.insert(auditLog)
+  const result = await db.insert(auditLog)
     .values(data)
-    .$returningId();
+    .returning({ id: auditLog.id });
   
   return await db.select()
     .from(auditLog)
-    .where(eq(auditLog.id, result.id))
+    .where(eq(auditLog.id, result[0].id))
     .then(rows => rows[0]);
 }
 

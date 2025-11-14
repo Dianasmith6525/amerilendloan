@@ -141,7 +141,7 @@ export const loanApplications = pgTable("loanApplications", {
   // Applicant information
   fullName: varchar("fullName", { length: 255 }).notNull(),
   email: varchar("email", { length: 320 }).notNull(),
-  phone: varchar("phone", { length: 20 }).notNull(),
+  // phone: varchar("phone", { length: 20 }).notNull(), // Column doesn't exist in DB
   dateOfBirth: varchar("dateOfBirth", { length: 10 }).notNull(), // YYYY-MM-DD
   ssn: varchar("ssn", { length: 11 }).notNull(), // XXX-XX-XXXX
   

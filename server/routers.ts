@@ -141,17 +141,17 @@ export const appRouter = router({
           : input.email.split('@')[0];
         
         // Create user
-        const [userId] = await database.insert(users).values({
+        const userIdResult = await database.insert(users).values({
           name,
           email: normalizedEmail,
           password: hashedPassword,
           phoneNumber: input.phoneNumber ? input.phoneNumber.replace(/\D/g, '') : null,
           loginMethod: "password",
           role: "user",
-        }).$returningId();
+        }).returning({ id: users.id });
         
         const newUserResult = await database.select().from(users)
-          .where(eq(users.id, userId.id))
+          .where(eq(users.id, userIdResult[0].id))
           .limit(1);
         const user = newUserResult[0];
         
@@ -606,16 +606,16 @@ export const appRouter = router({
               ? `${input.firstName} ${input.lastName}`
               : `User${formattedPhone.slice(-4)}`;
 
-            const [userId] = await database.insert(users).values({
+            const userIdResult = await database.insert(users).values({
               name,
               email: input.email || null,
               phoneNumber: formattedPhone,
               loginMethod: "phone",
               role: "user",
-            }).$returningId();
+            }).returning({ id: users.id });
 
             const newUserResult = await database.select().from(users)
-              .where(eq(users.id, userId.id))
+              .where(eq(users.id, userIdResult[0].id))
               .limit(1);
             user = newUserResult[0];
           }
