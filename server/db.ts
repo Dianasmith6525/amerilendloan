@@ -1,5 +1,5 @@
 import { desc, eq, lt } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { 
   InsertUser, 
   users,
@@ -42,25 +42,24 @@ import {
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import * as schema from "../drizzle/schema";
-import type { MySql2Database } from "drizzle-orm/mysql2";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-let _db: MySql2Database<typeof schema> | null = null;
+let _db: NodePgDatabase<typeof schema> | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
       console.log("[Database] DATABASE_URL found, attempting connection...");
-      const mysql = await import('mysql2/promise');
-      const pool = mysql.createPool({
-        uri: process.env.DATABASE_URL,
+      const { Pool } = await import('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
         ssl: {
           rejectUnauthorized: true
         }
       });
       _db = drizzle(pool, { 
-        schema, 
-        mode: "default"
+        schema
       });
       console.log("[Database] Connection pool created successfully");
     } catch (error) {
