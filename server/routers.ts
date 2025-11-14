@@ -7,6 +7,7 @@ import { z } from "zod";
 import * as db from "./db";
 import { users, userNotifications, loanApplications, payments, disbursements, legalAcceptances, supportMessages, referrals } from "../drizzle/schema";
 import { createOTP, verifyOTP, sendOTPEmail } from "./_core/otp";
+import { createPhoneOTP, verifyPhoneOTP, resendPhoneOTP, formatPhoneNumber, isValidPhoneNumber } from "./_core/sms-otp";
 import { createAuthorizeNetTransaction, getAcceptJsConfig } from "./_core/authorizenet";
 import { createCryptoCharge, checkCryptoPaymentStatus, getSupportedCryptos, convertUSDToCrypto } from "./_core/crypto-payment";
 import { checkPaymentById } from "./_core/payment-monitor";
@@ -553,6 +554,97 @@ export const appRouter = router({
           };
         }
         
+        return { success: true };
+      }),
+  }),
+
+  // Phone/SMS Authentication router
+  phoneAuth: router({
+    requestCode: publicProcedure
+      .input(z.object({
+        phone: z.string().min(10),
+        purpose: z.enum(["signup", "login", "loan_application"]),
+      }))
+      .mutation(async ({ input }) => {
+        if (!isValidPhoneNumber(input.phone)) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid phone number" });
+        }
+        const result = await createPhoneOTP(input.phone, input.purpose);
+        if (!result.success) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error || "Failed to send SMS" });
+        }
+        return { success: true };
+      }),
+
+    verifyCode: publicProcedure
+      .input(z.object({
+        phone: z.string(),
+        code: z.string().length(6),
+        purpose: z.enum(["signup", "login", "loan_application"]),
+        email: z.string().email().optional(),
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const result = await verifyPhoneOTP(input.phone, input.code, input.purpose);
+        if (!result.valid) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: result.error || "Invalid code" });
+        }
+
+        if (input.purpose === "login" || input.purpose === "signup") {
+          const database = await getDb();
+          const formattedPhone = formatPhoneNumber(input.phone);
+          
+          let user;
+          const userResult = await database.select().from(users)
+            .where(eq(users.phoneNumber, formattedPhone))
+            .limit(1);
+          user = userResult[0];
+
+          if (!user && input.purpose === "signup") {
+            const name = input.firstName && input.lastName
+              ? `${input.firstName} ${input.lastName}`
+              : `User${formattedPhone.slice(-4)}`;
+
+            const [userId] = await database.insert(users).values({
+              name,
+              email: input.email || null,
+              phoneNumber: formattedPhone,
+              loginMethod: "phone",
+              role: "user",
+            }).$returningId();
+
+            const newUserResult = await database.select().from(users)
+              .where(eq(users.id, userId.id))
+              .limit(1);
+            user = newUserResult[0];
+          }
+
+          if (user) {
+            await database.update(users)
+              .set({ lastSignedIn: new Date() })
+              .where(eq(users.id, user.id));
+
+            const cookieOptions = getSessionCookieOptions(ctx.req);
+            ctx.res.cookie(COOKIE_NAME, user.id.toString(), cookieOptions);
+
+            return { success: true, user: { id: user.id, email: user.email, name: user.name, role: user.role } };
+          }
+        }
+
+        return { success: true };
+      }),
+
+    resendCode: publicProcedure
+      .input(z.object({
+        phone: z.string(),
+        purpose: z.enum(["signup", "login", "loan_application"]),
+      }))
+      .mutation(async ({ input }) => {
+        const result = await resendPhoneOTP(input.phone, input.purpose);
+        if (!result.success) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error || "Failed to resend" });
+        }
         return { success: true };
       }),
   }),
