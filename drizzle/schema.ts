@@ -6,7 +6,26 @@ import { integer, pgEnum, pgTable, text, timestamp, varchar } from "drizzle-orm/
  * Columns use camelCase to match both database fields and generated types.
  */
 
-const roleEnum = pgEnum("role", ["user", "admin"]);
+// Define all enums first
+export const roleEnum = pgEnum("role", ["user", "admin"]);
+export const referralStatusEnum = pgEnum("referral_status", ["pending", "qualified", "rewarded"]);
+export const otpPurposeEnum = pgEnum("otp_purpose", ["signup", "login", "loan_application"]);
+export const documentTypeEnum = pgEnum("document_type", ["drivers_license", "state_id", "passport", "other"]);
+export const employmentStatusEnum = pgEnum("employment_status", ["employed", "self_employed", "unemployed", "retired"]);
+export const loanTypeEnum = pgEnum("loan_type", ["installment", "short_term"]);
+export const idVerificationStatusEnum = pgEnum("id_verification_status", ["pending", "verified", "failed", "manual_review"]);
+export const loanStatusEnum = pgEnum("loan_status", ["pending", "under_review", "approved", "rejected", "disbursed", "active", "paid_off", "defaulted"]);
+export const calculationModeEnum = pgEnum("calculation_mode", ["percentage", "fixed"]);
+export const disbursementStatusEnum = pgEnum("disbursement_status", ["pending", "processing", "completed", "failed", "cancelled"]);
+export const settingTypeEnum = pgEnum("setting_type", ["string", "number", "boolean", "json"]);
+export const notificationChannelEnum = pgEnum("notification_channel", ["email", "sms", "push"]);
+export const notificationStatusEnum = pgEnum("notification_status", ["pending", "sent", "failed", "read"]);
+export const supportStatusEnum = pgEnum("support_status", ["open", "in_progress", "resolved", "closed"]);
+export const priorityEnum = pgEnum("priority", ["low", "normal", "high", "urgent"]);
+export const supportCategoryEnum = pgEnum("support_category", ["account", "billing", "technical", "feedback", "other"]);
+export const senderTypeEnum = pgEnum("sender_type", ["user", "agent", "system"]);
+export const messageTypeEnum = pgEnum("message_type", ["text", "system", "file"]);
+export const ticketCategoryEnum = pgEnum("ticket_category", ["general", "loan_inquiry", "payment_issue", "technical_support", "complaint", "other"]);
 
 export const users = pgTable("users", {
   /**
@@ -21,7 +40,7 @@ export const users = pgTable("users", {
   phoneNumber: varchar("phone", { length: 20 }), // Maps to 'phone' column in DB
   password: varchar("passwordHash", { length: 255 }), // Maps to 'passwordHash' column in DB
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: pgEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: varchar("role", { length: 20 }).default("user").notNull(),
   // Note: referralCode and referredBy don't exist in current DB schema
   // referralCode: varchar("referralCode", { length: 10 }).unique(),
   // referredBy: integer("referredBy"),
@@ -60,11 +79,7 @@ export const referrals = pgTable("referrals", {
   referrerId: integer("referrerId").notNull(), // User who made the referral
   referredUserId: integer("referredUserId").notNull(), // User who was referred
   referralCode: varchar("referralCode", { length: 10 }).notNull(), // Code used for tracking
-  status: pgEnum("status", [
-    "pending",      // Referred user signed up
-    "qualified",    // Referred user got approved loan
-    "rewarded"      // Referrer received reward
-  ]).default("pending").notNull(),
+  status: varchar("status", { length: 20 }).default("pending").notNull(),
   rewardAmount: integer("rewardAmount"), // Reward amount in cents
   rewardPaidAt: timestamp("rewardPaidAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -88,7 +103,7 @@ export const otpCodes = pgTable("otpCodes", {
   id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
   email: varchar("email", { length: 320 }).notNull(),
   code: varchar("code", { length: 6 }).notNull(),
-  purpose: pgEnum("purpose", ["signup", "login", "loan_application"]).notNull(),
+  purpose: varchar("purpose", { length: 50 }).notNull(),
   expiresAt: timestamp("expiresAt").notNull(),
   verified: integer("verified").default(0).notNull(), // 0 = not verified, 1 = verified
   attempts: integer("attempts").default(0).notNull(),
@@ -105,12 +120,7 @@ export const legalAcceptances = pgTable("legalAcceptances", {
   id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
   userId: integer("userId").notNull(),
   loanApplicationId: integer("loanApplicationId"),  // Optional, for loan-specific agreements
-  documentType: pgEnum("documentType", [
-    "terms_of_service",
-    "privacy_policy",
-    "loan_agreement",
-    "esign_consent"
-  ]).notNull(),
+  documentType: varchar("documentType", { length: 50 }).notNull(),
   documentVersion: varchar("documentVersion", { length: 20 }).notNull(),  // e.g., "1.0", "2.1"
   ipAddress: varchar("ipAddress", { length: 45 }),  // IPv4 or IPv6
   userAgent: text("userAgent"),
@@ -142,12 +152,12 @@ export const loanApplications = pgTable("loanApplications", {
   zipCode: varchar("zipCode", { length: 10 }).notNull(),
   
   // Employment information
-  employmentStatus: pgEnum("employmentStatus", ["employed", "self_employed", "unemployed", "retired"]).notNull(),
+  employmentStatus: varchar({ length: 50 }).notNull(),
   employer: varchar("employer", { length: 255 }),
   monthlyIncome: integer("monthlyIncome").notNull(), // in cents
   
   // Loan details
-  loanType: pgEnum("loanType", ["installment", "short_term"]).notNull(),
+  loanType: varchar({ length: 50 }).notNull(),
   requestedAmount: integer("requestedAmount").notNull(), // in cents
   loanPurpose: text("loanPurpose").notNull(),
   
@@ -169,11 +179,7 @@ export const loanApplications = pgTable("loanApplications", {
   idFrontUrl: text("idFrontUrl"), // Front of government-issued ID (base64 data or file path for legacy)
   idBackUrl: text("idBackUrl"), // Back of government-issued ID (base64 data or file path for legacy)
   selfieUrl: text("selfieUrl"), // Selfie photo with ID (base64 data or file path for legacy)
-  idVerificationStatus: pgEnum("idVerificationStatus", [
-    "pending",    // Not yet reviewed
-    "verified",   // ID verified by admin
-    "rejected"    // ID verification failed
-  ]).default("pending"),
+  idVerificationStatus: varchar("idVerificationStatus", { length: 50 }).default("pending"),
   idVerificationNotes: text("idVerificationNotes"), // Admin notes on ID verification
   
   // IP Tracking and Location
@@ -184,16 +190,7 @@ export const loanApplications = pgTable("loanApplications", {
   ipTimezone: varchar("ipTimezone", { length: 100 }), // Timezone from IP lookup
   
   // Status tracking
-  status: pgEnum("status", [
-    "pending",        // Initial submission
-    "under_review",   // Being reviewed by admin
-    "approved",       // Approved, awaiting fee payment
-    "fee_pending",    // Fee payment initiated
-    "fee_paid",       // Fee confirmed paid
-    "disbursed",      // Loan disbursed
-    "rejected",       // Application rejected
-    "cancelled"       // Cancelled by user
-  ]).default("pending").notNull(),
+  status: varchar({ length: 50 }).default("pending").notNull(),
   
   rejectionReason: text("rejectionReason"),
   adminNotes: text("adminNotes"),
@@ -215,7 +212,7 @@ export const feeConfiguration = pgTable("feeConfiguration", {
   id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
   
   // Fee calculation mode
-  calculationMode: pgEnum("calculationMode", ["percentage", "fixed"]).default("percentage").notNull(),
+  calculationMode: varchar({ length: 50 }).default("percentage").notNull(),
   
   // Percentage mode settings (1.5% - 2.5%)
   percentageRate: integer("percentageRate").default(200).notNull(), // stored as basis points (200 = 2.00%)
@@ -250,12 +247,7 @@ export const disbursements = pgTable("disbursements", {
   routingNumber: varchar("routingNumber", { length: 20 }).notNull(),
   
   // Status tracking
-  status: pgEnum("status", [
-    "pending",      // Awaiting processing
-    "processing",   // Being processed
-    "completed",    // Successfully disbursed
-    "failed"        // Disbursement failed
-  ]).default("pending").notNull(),
+  status: varchar({ length: 50 }).default("pending").notNull(),
   
   transactionId: varchar("transactionId", { length: 255 }), // External transaction reference
   failureReason: text("failureReason"),
@@ -280,30 +272,16 @@ export const notifications = pgTable("notifications", {
   loanApplicationId: integer("loanApplicationId"),
   
   // Notification details
-  type: pgEnum("type", [
-    "loan_submitted",
-    "loan_approved",
-    "loan_rejected",
-    "payment_confirmed",
-    "loan_disbursed",
-    "payment_reminder",
-    "general"
-  ]).notNull(),
+  type: varchar({ length: 50 }).notNull(),
   
-  channel: pgEnum("channel", ["email", "sms", "push"]).default("email").notNull(),
+  channel: varchar({ length: 50 }).default("email").notNull(),
   
   recipient: varchar("recipient", { length: 320 }).notNull(), // email or phone
   subject: varchar("subject", { length: 255 }),
   message: text("message").notNull(),
   
   // Status tracking
-  status: pgEnum("status", [
-    "pending",
-    "sent",
-    "delivered",
-    "failed",
-    "bounced"
-  ]).default("pending").notNull(),
+  status: varchar({ length: 50 }).default("pending").notNull(),
   
   sentAt: timestamp("sentAt"),
   deliveredAt: timestamp("deliveredAt"),
@@ -325,14 +303,7 @@ export const userNotifications = pgTable("userNotifications", {
   userId: integer("userId").notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   message: text("message").notNull(),
-  type: pgEnum("type", [
-    "loan_status",
-    "payment_reminder",
-    "payment_received",
-    "disbursement",
-    "system",
-    "referral"
-  ]).notNull(),
+  type: varchar({ length: 50 }).notNull(),
   read: integer("read").default(0).notNull(), // 0 = unread, 1 = read
   actionUrl: varchar("actionUrl", { length: 500 }), // Optional link to relevant page
   metadata: text("metadata"), // JSON string for additional data
@@ -355,26 +326,14 @@ export const liveChatConversations = pgTable("liveChatConversations", {
   assignedAgentId: integer("assignedAgentId"), // Admin user handling the chat
   
   // Status
-  status: pgEnum("status", [
-    "waiting",      // Waiting for agent
-    "active",       // Active conversation with agent
-    "resolved",     // Conversation resolved
-    "closed"        // Conversation closed
-  ]).default("waiting").notNull(),
+  status: varchar({ length: 50 }).default("waiting").notNull(),
   
   // Priority
-  priority: pgEnum("priority", ["low", "normal", "high", "urgent"]).default("normal").notNull(),
+  priority: varchar({ length: 50 }).default("normal").notNull(),
   
   // Subject/Category
   subject: varchar("subject", { length: 255 }),
-  category: pgEnum("category", [
-    "loan_inquiry",
-    "application_status",
-    "payment_issue",
-    "technical_support",
-    "general",
-    "other"
-  ]).default("general").notNull(),
+  category: varchar({ length: 50 }).default("general").notNull(),
   
   // Ratings
   userRating: integer("userRating"), // 1-5 stars
@@ -403,11 +362,11 @@ export const liveChatMessages = pgTable("liveChatMessages", {
   
   // Sender
   senderId: integer("senderId"), // User or agent ID
-  senderType: pgEnum("senderType", ["user", "agent", "system"]).notNull(),
+  senderType: varchar({ length: 50 }).notNull(),
   senderName: varchar("senderName", { length: 255 }).notNull(),
   
   // Message content
-  messageType: pgEnum("messageType", ["text", "system", "file"]).default("text").notNull(),
+  messageType: varchar({ length: 50 }).default("text").notNull(),
   content: text("content").notNull(),
   
   // File attachments (optional)
@@ -469,11 +428,11 @@ export const supportMessages = pgTable("supportMessages", {
   // Message details
   subject: varchar("subject", { length: 500 }).notNull(),
   message: text("message").notNull(),
-  category: pgEnum("category", ["general", "loan_inquiry", "payment_issue", "technical_support", "complaint", "other"]).default("general").notNull(),
+  category: varchar({ length: 50 }).default("general").notNull(),
   
   // Status tracking
-  status: pgEnum("status", ["new", "in_progress", "resolved", "closed"]).default("new").notNull(),
-  priority: pgEnum("priority", ["low", "medium", "high", "urgent"]).default("medium").notNull(),
+  status: varchar({ length: 50 }).default("new").notNull(),
+  priority: varchar({ length: 50 }).default("medium").notNull(),
   
   // Admin response
   adminResponse: text("adminResponse"),
@@ -504,34 +463,11 @@ export const payments = pgTable("payments", {
   currency: varchar("currency", { length: 10 }).default("USD"), // USD, BTC, ETH, etc.
   
   // Payment method and provider
-  paymentMethod: pgEnum("paymentMethod", [
-    "card",
-    "credit_card",
-    "debit_card", 
-    "bank_transfer",
-    "ach",
-    "crypto",
-    "cash",
-    "check",
-    "other"
-  ]).notNull(),
-  paymentProvider: pgEnum("paymentProvider", [
-    "stripe",
-    "authorizenet",
-    "crypto",
-    "other"
-  ]),
+  paymentMethod: varchar({ length: 50 }).notNull(),
+  paymentProvider: varchar({ length: 50 }),
   
   // Status tracking
-  status: pgEnum("status", [
-    "pending",
-    "processing",
-    "completed",
-    "succeeded",
-    "failed",
-    "refunded",
-    "cancelled"
-  ]).default("pending").notNull(),
+  status: varchar({ length: 50 }).default("pending").notNull(),
   
   // Payment gateway details
   paymentIntentId: varchar("paymentIntentId", { length: 255 }), // Stripe/AuthorizeNet transaction ID
@@ -541,7 +477,7 @@ export const payments = pgTable("payments", {
   cardBrand: varchar("cardBrand", { length: 50 }), // Visa, Mastercard, etc.
   
   // Crypto payment details
-  cryptoCurrency: pgEnum("cryptoCurrency", ["BTC", "ETH", "USDT", "USDC"]),
+  cryptoCurrency: varchar({ length: 50 }),
   cryptoAddress: varchar("cryptoAddress", { length: 255 }),
   cryptoAmount: varchar("cryptoAmount", { length: 50 }), // Crypto amount as string (e.g., "0.0012 BTC")
   cryptoTxHash: varchar("cryptoTxHash", { length: 255 }),
@@ -583,7 +519,7 @@ export const systemSettings = pgTable("systemSettings", {
   id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
   key: varchar("key", { length: 100 }).notNull().unique(),
   value: text("value").notNull(),
-  type: pgEnum("type", ["string", "number", "boolean", "json"]).default("string").notNull(),
+  type: varchar({ length: 50 }).default("string").notNull(),
   category: varchar("category", { length: 50 }), // Add category field
   description: text("description"),
   isPublic: integer("isPublic").default(0).notNull(), // 0 = private (admin only), 1 = public (visible to users)
@@ -626,3 +562,7 @@ export const passwordResetTokens = pgTable("passwordResetTokens", {
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
+
+
+
