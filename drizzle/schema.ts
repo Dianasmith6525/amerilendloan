@@ -273,45 +273,19 @@ export const notifications = pgTable("notifications", {
   
   // Notification details
   type: varchar({ length: 50 }).notNull(),
-  
-  channel: varchar({ length: 50 }).default("email").notNull(),
-  
-  recipient: varchar("recipient", { length: 320 }).notNull(), // email or phone
-  subject: varchar("subject", { length: 255 }),
+  subject: varchar("subject", { length: 255 }).notNull(),
   message: text("message").notNull(),
   
   // Status tracking
   status: varchar({ length: 50 }).default("pending").notNull(),
   
   sentAt: timestamp("sentAt"),
-  deliveredAt: timestamp("deliveredAt"),
-  errorMessage: text("errorMessage"),
-  
-  // Metadata
-  metadata: text("metadata"), // JSON string for additional data
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  readAt: timestamp("readAt"),
+  createdAt: timestamp("createdAt").notNull(),
 });
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
-
-/**
- * In-app notifications for users
- */
-export const userNotifications = pgTable("userNotifications", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
-  userId: integer("userId").notNull(),
-  title: varchar("title", { length: 255 }).notNull(),
-  message: text("message").notNull(),
-  type: varchar({ length: 50 }).notNull(),
-  read: integer("read").default(0).notNull(), // 0 = unread, 1 = read
-  actionUrl: varchar("actionUrl", { length: 500 }), // Optional link to relevant page
-  metadata: text("metadata"), // JSON string for additional data
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-export type UserNotification = typeof userNotifications.$inferSelect;
-export type InsertUserNotification = typeof userNotifications.$inferInsert;
 
 /**
  * Live chat conversations between users and support agents

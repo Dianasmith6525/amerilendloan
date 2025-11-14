@@ -5,13 +5,13 @@ import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import * as db from "./db";
-import { users, userNotifications, loanApplications, payments, disbursements, legalAcceptances, supportMessages, referrals } from "../drizzle/schema";
+import { users, notifications, loanApplications, payments, disbursements, legalAcceptances, supportMessages, referrals } from "../drizzle/schema";
 import { createOTP, verifyOTP, sendOTPEmail } from "./_core/otp";
 import { createPhoneOTP, verifyPhoneOTP, resendPhoneOTP, formatPhoneNumber, isValidPhoneNumber } from "./_core/sms-otp";
 import { createAuthorizeNetTransaction, getAcceptJsConfig } from "./_core/authorizenet";
 import { createCryptoCharge, checkCryptoPaymentStatus, getSupportedCryptos, convertUSDToCrypto } from "./_core/crypto-payment";
 import { checkPaymentById } from "./_core/payment-monitor";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { getDb } from "./db";
 import { invokeLLM } from "./_core/llm";
 import { logger } from "./_core/logging";
@@ -2813,23 +2813,23 @@ CUSTOMER SERVICE EXCELLENCE:
           });
         }
 
-        let whereClause = eq(userNotifications.userId, ctx.user.id);
+        let whereClause = eq(notifications.userId, ctx.user.id);
         
         if (input.unreadOnly) {
           whereClause = and(
-            eq(userNotifications.userId, ctx.user.id),
-            eq(userNotifications.read, 0)
+            eq(notifications.userId, ctx.user.id),
+            isNull(notifications.readAt)
           ) as any;
         }
 
-        const notifications = await database
+        const notificationList = await database
           .select()
-          .from(userNotifications)
+          .from(notifications)
           .where(whereClause)
-          .orderBy(desc(userNotifications.createdAt))
+          .orderBy(desc(notifications.createdAt))
           .limit(input.limit);
 
-        return notifications;
+        return notificationList;
       }),
 
     // Get unread count
@@ -2839,17 +2839,17 @@ CUSTOMER SERVICE EXCELLENCE:
         return { count: 0 };
       }
 
-      const notifications = await database
+      const notificationList = await database
         .select()
-        .from(userNotifications)
+        .from(notifications)
         .where(
           and(
-            eq(userNotifications.userId, ctx.user.id),
-            eq(userNotifications.read, 0)
+            eq(notifications.userId, ctx.user.id),
+            isNull(notifications.readAt)
           ) as any
         );
 
-      return { count: notifications.length };
+      return { count: notificationList.length };
     }),
 
     // Mark notification as read
@@ -2865,12 +2865,12 @@ CUSTOMER SERVICE EXCELLENCE:
         }
 
         await database
-          .update(userNotifications)
-          .set({ read: 1 })
+          .update(notifications)
+          .set({ readAt: new Date() })
           .where(
             and(
-              eq(userNotifications.id, input.notificationId),
-              eq(userNotifications.userId, ctx.user.id)
+              eq(notifications.id, input.notificationId),
+              eq(notifications.userId, ctx.user.id)
             ) as any
           );
 
@@ -2888,9 +2888,9 @@ CUSTOMER SERVICE EXCELLENCE:
       }
 
       await database
-        .update(userNotifications)
-        .set({ read: 1 })
-        .where(eq(userNotifications.userId, ctx.user.id));
+        .update(notifications)
+        .set({ readAt: new Date() })
+        .where(eq(notifications.userId, ctx.user.id));
 
       return { success: true };
     }),
@@ -2908,11 +2908,11 @@ CUSTOMER SERVICE EXCELLENCE:
         }
 
         await database
-          .delete(userNotifications)
+          .delete(notifications)
           .where(
             and(
-              eq(userNotifications.id, input.notificationId),
-              eq(userNotifications.userId, ctx.user.id)
+              eq(notifications.id, input.notificationId),
+              eq(notifications.userId, ctx.user.id)
             ) as any
           );
 
@@ -2938,35 +2938,34 @@ CUSTOMER SERVICE EXCELLENCE:
         let whereConditions: any[] = [];
         
         if (input.userId) {
-          whereConditions.push(eq(userNotifications.userId, input.userId));
+          whereConditions.push(eq(notifications.userId, input.userId));
         }
         
         if (input.type) {
-          whereConditions.push(eq(userNotifications.type, input.type));
+          whereConditions.push(eq(notifications.type, input.type));
         }
 
         const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
-        const notifications = await database
+        const notificationList = await database
           .select({
-            id: userNotifications.id,
-            userId: userNotifications.userId,
-            title: userNotifications.title,
-            message: userNotifications.message,
-            type: userNotifications.type,
-            read: userNotifications.read,
-            actionUrl: userNotifications.actionUrl,
-            createdAt: userNotifications.createdAt,
+            id: notifications.id,
+            userId: notifications.userId,
+            subject: notifications.subject,
+            message: notifications.message,
+            type: notifications.type,
+            readAt: notifications.readAt,
+            createdAt: notifications.createdAt,
             userName: users.name,
             userEmail: users.email,
           })
-          .from(userNotifications)
-          .leftJoin(users, eq(userNotifications.userId, users.id))
+          .from(notifications)
+          .leftJoin(users, eq(notifications.userId, users.id))
           .where(whereClause)
-          .orderBy(desc(userNotifications.createdAt))
+          .orderBy(desc(notifications.createdAt))
           .limit(input.limit);
 
-        return notifications;
+        return notificationList;
       }),
   }),
 
