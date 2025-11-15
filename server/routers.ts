@@ -24,7 +24,8 @@ import {
   sendPaymentConfirmationEmail,
   sendLoanDisbursementEmail,
   sendIDVerificationRejectionEmail,
-  sendIDVerificationApprovalEmail
+  sendIDVerificationApprovalEmail,
+  sendProfileUpdateEmail
 } from "./_core/email";
 import { generateDownloadUrl } from "./_core/fileUpload";
 import { trackIPLocation } from "./_core/ipTracking";
@@ -696,14 +697,50 @@ export const appRouter = router({
         state: z.string().optional(),
         zipCode: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         console.log('[Admin] Updating user:', input.id);
         const database = await getDb();
         if (!database) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
         }
 
+        // Get current user data before update
+        const [currentUser] = await database.select().from(users)
+          .where(eq(users.id, input.id));
+        
+        if (!currentUser) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        }
+
         const { id, ...updateData } = input;
+        
+        // Track what fields were changed
+        const changedFields: Record<string, { old: any; new: any }> = {};
+        
+        if (updateData.name && updateData.name !== currentUser.name) {
+          changedFields['Name'] = { old: currentUser.name || 'Not set', new: updateData.name };
+        }
+        if (updateData.email && updateData.email !== currentUser.email) {
+          changedFields['Email'] = { old: currentUser.email, new: updateData.email };
+        }
+        if (updateData.phoneNumber !== undefined && updateData.phoneNumber !== currentUser.phoneNumber) {
+          changedFields['Phone Number'] = { old: currentUser.phoneNumber || 'Not set', new: updateData.phoneNumber };
+        }
+        if (updateData.role && updateData.role !== currentUser.role) {
+          changedFields['Account Type'] = { old: currentUser.role, new: updateData.role };
+        }
+        if (updateData.street && updateData.street !== currentUser.street) {
+          changedFields['Street Address'] = { old: currentUser.street || 'Not set', new: updateData.street };
+        }
+        if (updateData.city && updateData.city !== currentUser.city) {
+          changedFields['City'] = { old: currentUser.city || 'Not set', new: updateData.city };
+        }
+        if (updateData.state && updateData.state !== currentUser.state) {
+          changedFields['State'] = { old: currentUser.state || 'Not set', new: updateData.state };
+        }
+        if (updateData.zipCode && updateData.zipCode !== currentUser.zipCode) {
+          changedFields['ZIP Code'] = { old: currentUser.zipCode || 'Not set', new: updateData.zipCode };
+        }
         
         // Map phoneNumber to phone for database
         const dbUpdateData: any = {};
@@ -719,6 +756,26 @@ export const appRouter = router({
         await database.update(users)
           .set({ ...dbUpdateData, updatedAt: new Date() })
           .where(eq(users.id, id));
+
+        // Send update confirmation email if there are changes
+        if (Object.keys(changedFields).length > 0) {
+          try {
+            const emailAddress = updateData.email || currentUser.email;
+            const fullName = updateData.name || currentUser.name || 'User';
+            
+            // Add a note that the update was made by admin
+            const changesWithNote = {
+              ...changedFields,
+              'Updated By': { old: 'User self-service', new: `Admin (${ctx.user.email})` }
+            };
+            
+            await sendProfileUpdateEmail(emailAddress, fullName, changesWithNote);
+            console.log(`[Admin Update] Confirmation email sent to ${emailAddress}`);
+          } catch (emailError) {
+            console.error('[Admin Update] Failed to send confirmation email:', emailError);
+            // Continue - email failure shouldn't block update
+          }
+        }
 
         return { success: true };
       }),
@@ -2734,6 +2791,19 @@ CUSTOMER SERVICE EXCELLENCE:
           }
         }
 
+        // Track what fields were changed
+        const changedFields: Record<string, { old: any; new: any }> = {};
+        
+        if (input.name && input.name !== ctx.user.name) {
+          changedFields['Name'] = { old: ctx.user.name || 'Not set', new: input.name };
+        }
+        if (input.email && input.email !== ctx.user.email) {
+          changedFields['Email'] = { old: ctx.user.email, new: input.email };
+        }
+        if (input.phoneNumber !== undefined && input.phoneNumber !== ctx.user.phoneNumber) {
+          changedFields['Phone Number'] = { old: ctx.user.phoneNumber || 'Not set', new: input.phoneNumber };
+        }
+
         // Update user profile
         const updateData: any = {};
         if (input.name) updateData.name = input.name;
@@ -2743,6 +2813,19 @@ CUSTOMER SERVICE EXCELLENCE:
         await database.update(users)
           .set(updateData)
           .where(eq(users.id, ctx.user.id));
+
+        // Send update confirmation email if there are changes
+        if (Object.keys(changedFields).length > 0) {
+          try {
+            const emailAddress = input.email || ctx.user.email;
+            const fullName = input.name || ctx.user.name || 'User';
+            await sendProfileUpdateEmail(emailAddress, fullName, changedFields);
+            console.log(`[Profile Update] Confirmation email sent to ${emailAddress}`);
+          } catch (emailError) {
+            console.error('[Profile Update] Failed to send confirmation email:', emailError);
+            // Continue - email failure shouldn't block profile update
+          }
+        }
 
         return { success: true };
       }),

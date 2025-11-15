@@ -657,3 +657,107 @@ export async function sendIDVerificationApprovalEmail(
   });
 }
 
+/**
+ * Send profile update confirmation email
+ */
+export async function sendProfileUpdateEmail(
+  email: string,
+  fullName: string,
+  changedFields: Record<string, { old: any; new: any }>
+): Promise<boolean> {
+  // Build the changes list HTML
+  let changesHtml = '<ul style="list-style: none; padding: 0;">';
+  for (const [field, values] of Object.entries(changedFields)) {
+    const fieldLabel = field
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, (str) => str.toUpperCase())
+      .trim();
+    changesHtml += `
+      <li style="padding: 8px; background: #f3f4f6; margin: 8px 0; border-radius: 4px; border-left: 3px solid #0033A0;">
+        <strong>${fieldLabel}:</strong><br/>
+        <span style="color: #666; text-decoration: line-through;">Old: ${escapeHtml(String(values.old))}</span><br/>
+        <span style="color: #16a34a;">✓ New: ${escapeHtml(String(values.new))}</span>
+      </li>
+    `;
+  }
+  changesHtml += '</ul>';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #ffffff; padding: 20px; text-align: center; border-bottom: 1px solid #e5e7eb; }
+        .header img { max-width: 200px; height: auto; }
+        .content { padding: 20px; background: #f9fafb; }
+        .footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
+        .info-box { background: #dbeafe; border-left: 4px solid #0033A0; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .security-note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 15px 0; border-radius: 4px; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <img src="${APP_URL}/new-logo-final.png" alt="AmeriLend Logo" />
+        </div>
+        <div class="content">
+          <h2>Profile Information Updated</h2>
+          <p>Dear ${escapeHtml(fullName)},</p>
+          
+          <div class="info-box">
+            <h3 style="margin-top: 0; color: #1e40af;">📝 Account Update Confirmation</h3>
+            <p style="margin-bottom: 0;">Your account information has been successfully updated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.</p>
+          </div>
+
+          <h3>Changes Made:</h3>
+          ${changesHtml}
+
+          <div class="security-note">
+            <strong>🔒 Security Notice:</strong> If you did not make these changes or do not recognize this activity, please contact our support team immediately at support@amerilendloan.com.
+          </div>
+
+          <h3>Next Steps</h3>
+          <p>No action is required from you. Your updated information has been saved and will be used for your future interactions with AmeriLend.</p>
+
+          <p style="margin-top: 20px; padding: 15px; background: white; border-radius: 4px;">
+            <strong>Need Help?</strong><br/>
+            If you have any questions or need to make additional changes, please contact our support team at support@amerilendloan.com or log into your dashboard to manage your account.
+          </p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} AmeriLend. All rights reserved.</p>
+          <p>This is an automated message, please do not reply to this email.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const textChanges = Object.entries(changedFields)
+    .map(([field, values]) => `${field}: ${values.old} → ${values.new}`)
+    .join('\n');
+
+  return sendEmail({
+    to: email,
+    subject: '✅ Profile Updated - AmeriLend Account',
+    html,
+    text: `Dear ${fullName},\n\nYour profile has been successfully updated on ${new Date().toLocaleDateString()}.\n\nChanges Made:\n${textChanges}\n\nIf you did not make these changes, please contact support@amerilendloan.com immediately.\n\nBest regards,\nAmeriLend Team`,
+  });
+}
+
+/**
+ * HTML escape helper for email content
+ */
+function escapeHtml(text: string): string {
+  const map: { [key: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
