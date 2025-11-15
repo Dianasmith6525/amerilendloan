@@ -32,7 +32,7 @@ export const users = pgTable("users", {
    * Surrogate primary key. Auto-incremented numeric value managed by the database.
    * Use this for relations between tables.
    */
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).unique(),
   name: text("name"),
@@ -75,7 +75,7 @@ export type InsertUser = typeof users.$inferInsert;
  * Referral tracking and rewards
  */
 export const referrals = pgTable("referrals", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   referrerId: integer("referrerId").notNull(), // User who made the referral
   referredUserId: integer("referredUserId").notNull(), // User who was referred
   referralCode: varchar("referralCode", { length: 10 }).notNull(), // Code used for tracking
@@ -100,7 +100,7 @@ export type InsertUser = typeof users.$inferInsert;
  * OTP codes for authentication (signup and login)
  */
 export const otpCodes = pgTable("otpCodes", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   email: varchar("email", { length: 320 }).notNull(),
   code: varchar("code", { length: 6 }).notNull(),
   purpose: varchar("purpose", { length: 50 }).notNull(),
@@ -117,7 +117,7 @@ export type InsertOtpCode = typeof otpCodes.$inferInsert;
  * Legal document acceptances tracking
  */
 export const legalAcceptances = pgTable("legalAcceptances", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   userId: integer("userId").notNull(),
   loanApplicationId: integer("loanApplicationId"),  // Optional, for loan-specific agreements
   documentType: varchar("documentType", { length: 50 }).notNull(),
@@ -134,7 +134,7 @@ export type InsertLegalAcceptance = typeof legalAcceptances.$inferInsert;
  * Loan applications submitted by users
  */
 export const loanApplications = pgTable("loanApplications", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   userId: integer("userId").notNull(),
   referenceNumber: varchar("referenceNumber", { length: 20 }).unique(), // Unique tracking number (auto-generated)
   
@@ -209,7 +209,7 @@ export type InsertLoanApplication = typeof loanApplications.$inferInsert;
  * System configuration for processing fees
  */
 export const feeConfiguration = pgTable("feeConfiguration", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   
   // Fee calculation mode
   calculationMode: varchar({ length: 50 }).default("percentage").notNull(),
@@ -234,7 +234,7 @@ export type InsertFeeConfiguration = typeof feeConfiguration.$inferInsert;
  * Loan disbursement records
  */
 export const disbursements = pgTable("disbursements", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   loanApplicationId: integer("loanApplicationId").notNull(),
   userId: integer("userId").notNull(),
   
@@ -267,7 +267,7 @@ export type InsertDisbursement = typeof disbursements.$inferInsert;
  * Notification logs for tracking emails and alerts sent to users
  */
 export const notifications = pgTable("notifications", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   userId: integer("userId").notNull(),
   loanApplicationId: integer("loanApplicationId"),
   
@@ -291,7 +291,7 @@ export type InsertNotification = typeof notifications.$inferInsert;
  * Live chat conversations between users and support agents
  */
 export const liveChatConversations = pgTable("liveChatConversations", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   userId: integer("userId"), // Can be null for non-authenticated users
   guestName: varchar("guestName", { length: 255 }), // For non-authenticated users
   guestEmail: varchar("guestEmail", { length: 320 }), // For non-authenticated users
@@ -331,7 +331,7 @@ export type InsertLiveChatConversation = typeof liveChatConversations.$inferInse
  * Individual messages within live chat conversations
  */
 export const liveChatMessages = pgTable("liveChatMessages", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   conversationId: integer("conversationId").notNull(),
   
   // Sender
@@ -363,7 +363,7 @@ export type InsertLiveChatMessage = typeof liveChatMessages.$inferInsert;
  * Audit log for system-wide actions and security events
  */
 export const auditLog = pgTable("auditLog", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   userId: integer("userId"),
   
   // Action details
@@ -391,7 +391,7 @@ export type InsertAuditLog = typeof auditLog.$inferInsert;
  * Support messages from users to admin
  */
 export const supportMessages = pgTable("supportMessages", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   userId: integer("userId"), // Can be null for non-logged-in users
   
   // Sender information
@@ -425,7 +425,7 @@ export type InsertSupportMessage = typeof supportMessages.$inferInsert;
  * Payment transactions and repayments
  */
 export const payments = pgTable("payments", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   
   // Transaction details
   transactionId: varchar("transactionId", { length: 100 }).unique(), // Unique transaction reference (optional for pending payments)
@@ -490,7 +490,7 @@ export type InsertPayment = typeof payments.$inferInsert;
  * System settings table for configuration values
  */
 export const systemSettings = pgTable("systemSettings", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   key: varchar("key", { length: 100 }).notNull().unique(),
   value: text("value").notNull(),
   type: varchar({ length: 50 }).default("string").notNull(),
@@ -509,7 +509,7 @@ export type InsertSystemSetting = typeof systemSettings.$inferInsert;
  * Draft loan applications table - for saving incomplete applications
  */
 export const draftApplications = pgTable("draftApplications", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   email: varchar("email", { length: 320 }).notNull(), // User's email (even if not registered yet)
   userId: integer("userId"), // Optional - linked user if they have an account
   draftData: text("draftData").notNull(), // JSON string of form data
@@ -526,7 +526,7 @@ export type InsertDraftApplication = typeof draftApplications.$inferInsert;
  * Password reset tokens table
  */
 export const passwordResetTokens = pgTable("passwordResetTokens", {
-  id: integer("id").generatedAlwaysAsIdentity().primaryKey(),
+  id: serial("id").primaryKey(),
   userId: integer("userId").notNull(),
   token: varchar("token", { length: 255 }).notNull().unique(),
   expiresAt: timestamp("expiresAt").notNull(),
@@ -536,6 +536,7 @@ export const passwordResetTokens = pgTable("passwordResetTokens", {
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
 
 
 
